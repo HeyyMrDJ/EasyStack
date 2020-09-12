@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	cmd := exec.Command("virsh list")
+	cmd := exec.Command("sh","virsh list")
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
