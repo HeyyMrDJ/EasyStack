@@ -6,12 +6,25 @@ import (
 	"net"
 	"time"
 	"github.com/digitalocean/go-libvirt"
+	"net/http"
 )
+
+func homePage(w http.ResponseWriter, r *http.Request){
+	fmt.FPrintf(w, "Welcome to the Homepage!")
+	fmt.Println("Endpoint Hit: homePage")
+}
+
+func handleRequests(){
+	http.HandleFunc("/", homePage)
+	log.Fatal(http.listenAndServe(":10000", nil))
+}
 
 func main() {
 // This dials libvirt on the local machine, but you can substitute the first
 	// two parameters with "tcp", "<ip address>:<port>" to connect to libvirt on
 	// a remote machine.
+
+	handleRequests()
 	c, err := net.DialTimeout("unix", "/var/run/libvirt/libvirt-sock", 2*time.Second)
 	if err != nil {
 		log.Fatalf("failed to dial libvirt: %v", err)
