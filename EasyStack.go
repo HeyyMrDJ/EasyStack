@@ -2,44 +2,50 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net"
-	"time"
-	"github.com/digitalocean/go-libvirt"
+	"os"
+libvirt "libvirt.org/libvirt-go"
 )
 
+var DB *libvirt.Connect
+
 func main() {
-// This dials libvirt on the local machine, but you can substitute the first
-	// two parameters with "tcp", "<ip address>:<port>" to connect to libvirt on
-	// a remote machine.
-	c, err := net.DialTimeout("unix", "/var/run/libvirt/libvirt-sock", 2*time.Second)
+
+
+	input := GetInput()
+	GetRunningVMs(input)
+}
+
+func OpenRemoteConnection(i string) *libvirt.Connect {
+	connection := "qemu+ssh://" + i + "/system?socket=/var/run/libvirt/libvirt-sock"
+	conn, err := libvirt.NewConnect(connection)
 	if err != nil {
-		log.Fatalf("failed to dial libvirt: %v", err)
+		fmt.Println(err)
+		os.Exit(0)
 	}
+	
+	return conn
+}
 
-	l := libvirt.New(c)
-	if err := l.Connect(); err != nil {
-		log.Fatalf("failed to connect: %v", err)
-	}
-
-	v, err := l.Version()
+func GetRunningVMs(input string){
+	conn := OpenRemoteConnection(input)
+	doms, err := conn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_INACTIVE)
 	if err != nil {
-		log.Fatalf("failed to retrieve libvirt version: %v", err)
+		fmt.Println(err,doms)
 	}
-	fmt.Println("Version:", v)
+	
+	fmt.Printf("Running Domains: %d\n", len(doms))
+	for _, dom := range doms {
+		name, err := dom.GetName()
+		if err == nil {
+			fmt.Printf("  Name: %s\n", name)
+		}
+		dom.Free()
+	}
+}
 
-	domains, err := l.Domains()
-	if err != nil {
-		log.Fatalf("failed to retrieve domains: %v", err)
-	}
-
-	fmt.Println("ID\tName\t\tUUID")
-	fmt.Printf("--------------------------------------------------------\n")
-	for _, d := range domains {
-		fmt.Printf("%d\t%s\t%x\n", d.ID, d.Name, d.UUID)
-	}
-
-	if err := l.Disconnect(); err != nil {
-		log.Fatalf("failed to disconnect: %v", err)
-	}
+func GetInput() string{
+	var input string
+	fmt.Println("Enter the username and Hostname/IP address of the remote system. (eg. admin@host1)")
+	fmt.Scanln(&input)
+	return input
 }
