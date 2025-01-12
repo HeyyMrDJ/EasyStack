@@ -1,0 +1,31 @@
+---
+    - name: Ensure loopback interface is configured
+      ansible.builtin.lineinfile:
+        path: /etc/network/interfaces
+        line: "{{ item }}"
+        create: yes
+        state: present
+      with_items:
+        - "# This file describes the network interfaces available on your system"
+        - "# and how to activate them. For more information, see interfaces(5)."
+        - ""
+        - "auto lo"
+        - "iface lo inet loopback"
+        - ""
+        - "allow-hotplug eno1"
+        - "iface eno1 inet manual"
+        - ""
+        - "auto br0"
+        - "iface br0 inet dhcp"
+        - "bridge_ports eno1"
+        - "bridge_stp off"
+        - "bridge_fd 0"
+        - ""
+      register: networking
+      #changed_when: networking =='changed'
+
+    - name: Restart networking service
+      ansible.builtin.service:
+        name: networking
+        state: restarted
+      when: networking.changed

@@ -4,55 +4,35 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"time"
+
 	"github.com/digitalocean/go-libvirt"
-	"net/http"
 )
 
-func homePage(w http.ResponseWriter, r *http.Request){
-	fmt.FPrintf(w, "Welcome to the Homepage!")
-	fmt.Println("Endpoint Hit: homePage")
-}
-
-func handleRequests(){
-	http.HandleFunc("/", homePage)
-	log.Fatal(http.listenAndServe(":10000", nil))
-}
-
 func main() {
-// This dials libvirt on the local machine, but you can substitute the first
-	// two parameters with "tcp", "<ip address>:<port>" to connect to libvirt on
-	// a remote machine.
+	// Replace with the IP address or hostname of your remote libvirt server
+	const remoteAddr = "192.168.201.213:16509"
 
-	handleRequests()
-	c, err := net.DialTimeout("unix", "/var/run/libvirt/libvirt-sock", 2*time.Second)
+	conn, err := net.Dial("tcp", remoteAddr)
 	if err != nil {
-		log.Fatalf("failed to dial libvirt: %v", err)
+		log.Fatalf("Failed to connect to libvirt: %v", err)
 	}
+	defer conn.Close()
 
-	l := libvirt.New(c)
+	l := libvirt.New(conn)
 	if err := l.Connect(); err != nil {
-		log.Fatalf("failed to connect: %v", err)
+		log.Fatalf("Failed to authenticate: %v", err)
 	}
 
-	v, err := l.Version()
-	if err != nil {
-		log.Fatalf("failed to retrieve libvirt version: %v", err)
-	}
-	fmt.Println("Version:", v)
+	defer l.Disconnect()
 
+	// Example: List all domains
 	domains, err := l.Domains()
 	if err != nil {
-		log.Fatalf("failed to retrieve domains: %v", err)
+		log.Fatalf("Failed to list domains: %v", err)
 	}
 
-	fmt.Println("ID\tName\t\tUUID")
-	fmt.Printf("--------------------------------------------------------\n")
-	for _, d := range domains {
-		fmt.Printf("%d\t%s\t%x\n", d.ID, d.Name, d.UUID)
-	}
-
-	if err := l.Disconnect(); err != nil {
-		log.Fatalf("failed to disconnect: %v", err)
+	println("Getting list of VMs")
+	for _, domain := range domains {
+		fmt.Printf("VM: %s\n", domain.Name)
 	}
 }

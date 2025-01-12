@@ -1,0 +1,18 @@
+---
+    - name: Update APT package cache
+      apt:
+        update_cache: yes
+
+    - name: Install packages on Debian/Ubuntu
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ packages }}"
+
+    - name: Ensure services are started and enabled
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop: "{{ services }}"
+

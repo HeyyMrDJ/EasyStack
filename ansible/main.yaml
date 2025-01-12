@@ -1,0 +1,77 @@
+---
+- name: Install KVM and dependancies
+  hosts: nodes
+  become: true
+  #vars_prompt:
+  #  - name: "ansible_user"
+  #    prompt: "Enter the username for SSH"
+  #    private: no
+  #  - name: "ansible_password"
+  #    prompt: "Enter the password for SSH"
+  #    private: yes
+  
+  vars:
+  #  ansible_python_interpreter: /usr/bin/python3.11
+    packages:
+      - qemu-system
+      - libvirt-daemon-system
+      - virtinst
+      - libvirt-clients
+      - dnsmasq-base
+      - bridge-utils
+      - firewalld
+    services:
+      - firewalld
+
+  roles:
+    #- depends
+    #- network
+    #- kvm_config
+  tasks:
+    - name: Enable and start libvirtd-tcp.socket
+      ansible.builtin.systemd:
+        name: libvirtd
+        #enabled: yes
+        state: stopped
+
+    - name: Ensure loopback interface is configured
+      ansible.builtin.lineinfile:
+        path: /etc/libvirt/libvirtd.conf
+        line: "{{ item }}"
+        create: yes
+        state: present
+      with_items:
+        - "listen_tls = 0"
+        - "listen_tcp = 1"
+        - "auth_tcp = \"none\""
+        - "tcp_port = \"16509\""
+        - "listen_addr = \"0.0.0.0\""
+
+    - name: Add libvirt TCP port to firewalld
+      ansible.posix.firewalld:
+        service: libvirt
+        permanent: true
+        state: enabled
+
+    - name: Restart networking service
+      ansible.builtin.service:
+        name: firewalld
+        state: restarted
+
+    - name: Enable and start libvirtd-tcp.socket
+      ansible.builtin.systemd:
+        name: firewalld
+        #enabled: yes
+        state: started
+
+    - name: Enable and start libvirtd-tcp.socket
+      ansible.builtin.systemd:
+        name: libvirtd-tcp.socket
+        enabled: yes
+        state: started
+
+    - name: Enable and start libvirtd-tcp.socket
+      ansible.builtin.systemd:
+        name: libvirtd
+        #enabled: yes
+        state: started

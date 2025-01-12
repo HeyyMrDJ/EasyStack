@@ -1,0 +1,27 @@
+---
+  - name: Create KVM Bridge Network Definition
+    ansible.builtin.lineinfile:
+      path: /etc/libvirt/qemu/networks/bridge-network.xml
+      line: "{{ item }}"
+      create: yes
+      state: present
+    with_items:
+      - "<network>"
+      - "  <name>bridge-network</name>"
+      - "  <forward mode='bridge'/>"
+      - "  <bridge name='br0'/>"
+      - "</network>"
+    register: qemunetwork
+
+  - name: Define the bridge network
+    command: virsh net-define /etc/libvirt/qemu/networks/bridge-network.xml
+    register: result
+    when: qemunetwork.changed
+
+  - name: Start the network
+    command: virsh net-start bridge-network
+    when: result.changed
+
+  - name: Set network to autostart
+    command: virsh net-autostart bridge-network
+    when: result.changed

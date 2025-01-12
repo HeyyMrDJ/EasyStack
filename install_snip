@@ -1,0 +1,1 @@
+virt-install --name fedora-cloud-vm --ram 2048 --vcpus 2 --disk path=/var/lib/libvirt/images/Fedora,format=qcow2,bus=virtio --os-variant fedora36 --network bridge=br0 --import --cloud-init root-password-file=./passwordfile
