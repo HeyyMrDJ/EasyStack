@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Simple Golang App</title>
+	<link rel="stylesheet" href="/static/css/styles.css">
+</head>
+
+<body>
+	<header>
+		<h1>DJ Private Cloud</h1>
+	</header>
+	<main>
+		<h2>VM List</h2>
+		<ul>
+			{{range .}}
+			<li>{{.}}</li>
+			{{else}}
+			<li>No items available</li>
+			{{end}}
+		</ul>
+	</main>
+	<footer>
+		<p>&copy; 2025 DJ</p>
+	</footer>
+</body>
+
+</html>

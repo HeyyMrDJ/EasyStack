@@ -25,3 +25,32 @@
   - name: Set network to autostart
     command: virsh net-autostart bridge-network
     when: result.changed
+
+  - name: Create KVM Bridge Network Definition
+    ansible.builtin.lineinfile:
+      path: /etc/libvirt/libvirt.conf
+      line: "{{ item }}"
+      create: yes
+      state: present
+    with_items:
+      - "uri_default = \"qemu:///system\""
+
+  - name: Ensure the directory exists
+    file:
+      path: /var/lib/libvirt/images
+      state: directory
+      mode: '0770'
+      owner: libvirt-qemu
+      group: libvirt-qemu
+
+  - name: Add user to libvirt-qemu group
+    user:
+      name: "{{ ansible_user }}"  # Replace with your desired user, e.g., 'youruser'
+      groups: libvirt-qemu
+      append: yes
+
+  - name: Add user to libvirt group
+    user:
+      name: "{{ ansible_user }}"  # Replace with your username
+      group: libvirt
+      append: yes
