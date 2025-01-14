@@ -137,6 +137,9 @@ func createVM(client *libvirt.Libvirt, name string) {
     <console type='pty'>
       <target type='serial' port='0'/>
     </console>
+      <channel type='unix'>
+        <target type='virtio' name='org.qemu.guest_agent.0'/>
+      </channel>
   </devices>
 </domain>`, name, name, name)
 
