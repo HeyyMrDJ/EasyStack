@@ -90,10 +90,14 @@ func start_web() {
 	router.Handle("/static/*", http.StripPrefix("/static/", fs))
 
 	// Route for /vm (handles GET and POST)
-	router.Get("/", serveHome)
-	router.Get("/vm", getVMHandler)
-	router.Post("/vm", postVMHandler)
-	router.Post("/vm/{name}", deleteVMHandler)
+	router.Get("/", serveDashboard)
+	router.Get("/api/vm", getVMHandler)
+	router.Post("/api/vm", postVMHandler)
+	router.Post("/api/vm/{name}", deleteVMHandler)
+	router.Get("/vm", serveVM)
+	router.Get("/storage", serveStorage)
+	router.Get("/networks", serveNetworks)
+	router.Get("/containers", serveContainers)
 
 	fmt.Println("Listening on:", HTTP_PORT)
 	http.ListenAndServe(HTTP_PORT, router)
@@ -153,9 +157,9 @@ func deleteVMHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther) // Use 303 for POST redirects
 }
 
-func serveHome(w http.ResponseWriter, r *http.Request) {
+func serveVM(w http.ResponseWriter, r *http.Request) {
 	// Create a template
-	tmpl, err := template.ParseFiles("templates/index.html")
+	tmpl, err := template.ParseFiles("templates/index.html", "templates/vms.html")
 	if err != nil {
 		panic(err)
 	}
@@ -365,4 +369,44 @@ func sshCommand(user, host, keyPath, command string) (string, error) {
 
 	output, err := session.CombinedOutput(command)
 	return string(output), err
+}
+
+func serveContainers(w http.ResponseWriter, r *http.Request) {
+	// Create a template
+	tmpl, err := template.ParseFiles("templates/index.html", "templates/containers.html")
+	if err != nil {
+		panic(err)
+	}
+	vms := getVMs(client)
+	tmpl.Execute(w, vms)
+}
+
+func serveStorage(w http.ResponseWriter, r *http.Request) {
+	// Create a template
+	tmpl, err := template.ParseFiles("templates/index.html", "templates/storage.html")
+	if err != nil {
+		panic(err)
+	}
+	vms := getVMs(client)
+	tmpl.Execute(w, vms)
+}
+
+func serveNetworks(w http.ResponseWriter, r *http.Request) {
+	// Create a template
+	tmpl, err := template.ParseFiles("templates/index.html", "templates/network.html")
+	if err != nil {
+		panic(err)
+	}
+	vms := getVMs(client)
+	tmpl.Execute(w, vms)
+}
+
+func serveDashboard(w http.ResponseWriter, r *http.Request) {
+	// Create a template
+	tmpl, err := template.ParseFiles("templates/index.html", "templates/dashboard.html")
+	if err != nil {
+		panic(err)
+	}
+	vms := getVMs(client)
+	tmpl.Execute(w, vms)
 }
