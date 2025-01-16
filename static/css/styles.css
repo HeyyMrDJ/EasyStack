@@ -1,23 +1,160 @@
-li {
-	background-color: #000000;
-	color: whitesmoke;
-	margin: 0.5rem 0;
-	padding: 0.75rem;
-	border: 1px solid #ddd;
-	border-radius: 5px;
-	font-family: Arial, sans-serif;
-
-}
-
-ul {
-	list-style: none;
+/* General Reset */
+* {
+	margin: 0;
 	padding: 0;
+	box-sizing: border-box;
 }
 
-h1 {
-	text-align: center;
+body {
+	font-family: Arial, sans-serif;
+	background-color: #f4f4f4;
+	color: #333;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	height: 100vh;
 }
 
+/* Grid Layout */
+.grid-container {
+	display: grid;
+	grid-template-columns: 250px 1fr;
+	/* Sidebar and Main Content */
+	grid-template-rows: 70px 1fr;
+	/* Header and Content */
+	height: 100%;
+	width: 100%;
+	background-color: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	border-radius: 8px;
+}
+
+/* Header */
+.header {
+	grid-column: 1 / 3;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0 20px;
+	background-color: #333;
+	color: white;
+	font-size: 1.5em;
+}
+
+.header .title {
+	margin-left: 10px;
+}
+
+.header .account a {
+	text-decoration: none;
+	color: #1e90ff;
+}
+
+/* Navbar */
+.navbar {
+	grid-row: 2 / 3;
+	grid-column: 1 / 2;
+	background-color: #444;
+	padding: 20px;
+	color: white;
+}
+
+.navbar ul {
+	list-style: none;
+}
+
+.navbar ul li {
+	margin-bottom: 15px;
+}
+
+.navbar ul li a {
+	text-decoration: none;
+	color: white;
+	font-size: 1.1em;
+	transition: color 0.3s ease;
+}
+
+.navbar ul li a:hover {
+	color: #1e90ff;
+}
+
+/* Main Content */
+.main-content {
+	grid-row: 2 / 3;
+	grid-column: 2 / 3;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	/* Stack items vertically */
+	gap: 20px;
+	/* Add spacing between form and VM list */
+}
+
+/* Create VM Form */
+.create-vm {
+	display: flex;
+	justify-content: flex-end;
+	/* Align form to the right */
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+/* VM List */
+/* VM List Table */
+.vm-list table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 20px;
+}
+
+.vm-list th,
+.vm-list td {
+	border: 1px solid #ddd;
+	padding: 8px;
+	text-align: left;
+}
+
+.vm-list th {
+	background-color: #333;
+	color: white;
+}
+
+.vm-list tr:nth-child(even) {
+	background-color: #f2f2f2;
+}
+
+.vm-list button {
+	padding: 6px 12px;
+	font-size: 1rem;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.console-btn {
+	background-color: #28a745;
+}
+
+.console-btn:hover {
+	background-color: #218838;
+}
+
+.delete-btn {
+	background-color: red;
+}
+
+.delete-btn:hover {
+	background-color: darkred;
+}
+
+/* Optional: Footer */
 footer {
 	text-align: center;
+	padding: 10px 0;
+	background-color: #333;
+	color: white;
+	position: fixed;
+	bottom: 0;
+	width: 100%;
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/digitalocean/go-libvirt"
+	"github.com/go-chi/chi"
 )
 
 var client = createConnection()
@@ -29,9 +31,43 @@ var SSH_USER = os.Getenv("SSH_USER")
 var KEYPATH = os.Getenv("KEYPATH")
 var SSH_HOST = HOST + ":" + SSH_PORT
 
+type IPAddress struct {
+	IPAddressType string `json:"ip-address-type"`
+	IPAddress     string `json:"ip-address"`
+	Prefix        int    `json:"prefix"`
+}
+
+type NetworkInterface struct {
+	Name        string      `json:"name"`
+	IPAddresses []IPAddress `json:"ip-addresses"`
+}
+
+type GuestNetworkResponse struct {
+	Return []NetworkInterface `json:"return"`
+}
+
+type VM struct {
+	Name    string
+	CPU     uint16
+	RAM     uint64
+	Status  string
+	Console string
+	IP      string
+}
+type status int
+
+const (
+	STOPPED status = iota
+	RUNNING        = iota
+)
+
 func main() {
 	defer client.Disconnect()
 
+	if len(os.Args) < 2 {
+		println("Must enter 'create', 'list', 'delete', or 'web'")
+		os.Exit(1)
+	}
 	switch os.Args[1] {
 	case "create":
 		createVM(client, os.Args[2])
@@ -39,21 +75,85 @@ func main() {
 		getVMs(client)
 	case "delete":
 		deleteVM(os.Args[2])
+	case "web":
+		start_web()
+	default:
+		println("Must enter 'create', 'list', 'delete', or 'web'")
+		os.Exit(1)
 	}
-
-	// Serve static files (CSS, JS, Images, etc.)
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
-
-	// Handler function for the root path ("/")
-	http.HandleFunc("/", serve_home)
-
-	// Start the server listening on port 8080
-	fmt.Printf("Server listening on http://localhost%s/", HTTP_PORT)
-	http.ListenAndServe(HTTP_PORT, nil)
 }
 
-func serve_home(w http.ResponseWriter, r *http.Request) {
+func start_web() {
+	router := chi.NewRouter()
+
+	fs := http.FileServer(http.Dir("static"))
+	router.Handle("/static/*", http.StripPrefix("/static/", fs))
+
+	// Route for /vm (handles GET and POST)
+	router.Get("/", serveHome)
+	router.Get("/vm", getVMHandler)
+	router.Post("/vm", postVMHandler)
+	router.Post("/vm/{name}", deleteVMHandler)
+
+	fmt.Println("Listening on:", HTTP_PORT)
+	http.ListenAndServe(HTTP_PORT, router)
+}
+
+func getVMHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("USING: ", r.Method)
+	switch r.Method {
+	case http.MethodGet:
+		fmt.Println("GET")
+		vms := getVMs(client)
+		vmsJson, err := json.Marshal(vms)
+		if err != nil {
+			log.Fatalf("Error converting to JSON: %v", err)
+		}
+		fmt.Fprintln(w, string(vmsJson))
+	case http.MethodPost:
+		fmt.Println("POST")
+		// Parse form data
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
+
+		// Get the 'name' from the form
+		name := r.FormValue("name")
+		createVM(client, name)
+		http.Redirect(w, r, "/", http.StatusPermanentRedirect)
+	case http.MethodDelete:
+		fmt.Println("DELETE")
+		path := r.PathValue("name")
+		deleteVM(path)
+	}
+}
+
+func postVMHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse form data
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
+		return
+	}
+
+	// Get the 'name' from the form
+	name := r.FormValue("name")
+	createVM(client, name)
+
+	// Redirect after successful VM creation
+	http.Redirect(w, r, "/", http.StatusSeeOther) // Use 303 for POST redirects
+}
+
+func deleteVMHandler(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	fmt.Println("DELETE HIT", name)
+	deleteVM(name)
+	http.Redirect(w, r, "/", http.StatusSeeOther) // Use 303 for POST redirects
+}
+
+func serveHome(w http.ResponseWriter, r *http.Request) {
 	// Create a template
 	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
@@ -63,19 +163,50 @@ func serve_home(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, vms)
 }
 
-func getVMs(client *libvirt.Libvirt) []string {
+func getVMs(client *libvirt.Libvirt) []VM {
 	domains, err := client.Domains()
 	if err != nil {
 		fmt.Printf("Failed to get domains:  %s", err.Error())
 	}
 
-	vms := []string{}
+	VMs := []VM{}
 	println("Getting list of VMs")
 	for _, domain := range domains {
+		one, _, three, four, _, _ := client.DomainGetInfo(domain)
 		fmt.Printf("VM: %s\n", domain.Name)
-		vms = append(vms, domain.Name)
+		var mystatus string
+		if one == 1 {
+			mystatus = "RUNNING"
+		} else {
+			mystatus = "STOPPED"
+		}
+		command := fmt.Sprintf("virsh --connect qemu:///system qemu-agent-command %s '{\"execute\":\"guest-network-get-interfaces\"}'", domain.Name)
+
+		output, err := sshCommand(SSH_USER, SSH_HOST, KEYPATH, command)
+		if err != nil {
+			log.Printf("Error running remote command: %v\nOutput: %s", err, output)
+		}
+		println(output)
+		var response GuestNetworkResponse
+		err = json.Unmarshal([]byte(output), &response)
+		if err != nil {
+			log.Printf("Error unmarshaling JSON: %v", err)
+		}
+
+		// Iterate over the interfaces and find the second IP address of enp1s0
+		var ip string
+		for _, iface := range response.Return {
+			if iface.Name == "enp1s0" && len(iface.IPAddresses) > 1 {
+				// Get the second IP address (index 1)
+				ip = iface.IPAddresses[0].IPAddress
+				fmt.Println("Second IP address of enp1s0:", ip)
+				continue
+			}
+		}
+		vm := VM{domain.Name, four, three / 1048576, mystatus, "", ip}
+		VMs = append(VMs, vm)
 	}
-	return vms
+	return VMs
 }
 
 func createVM(client *libvirt.Libvirt, name string) {
