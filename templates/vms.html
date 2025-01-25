@@ -4,7 +4,7 @@
 		<h2> Virtual Machines </h2>
 	</div>
 	<div class="create-vm">
-		<form action="/vm" method="POST">
+		<form action="/api/vm" method="POST">
 			<label for="name">VM Name:</label>
 			<input type="text" id="name" name="name" required>
 			<button type="submit">Create</button>
@@ -33,12 +33,15 @@
 				<tr>
 					<td>{{ .Name }}</td>
 					<td>{{ .Status }}</td>
-					<td><button class="console-btn">Console</button></td>
+					<td>
+						<a href="http://192.168.201.213:{{.Console}}/spice_auto.html"
+							class="console-btn">Console</a>
+					</td>
 					<td>{{ .CPU }}</td>
 					<td>{{ .RAM }}</td>
 					<td>{{ .IP }}</td>
 					<td>
-						<form action="/vm/{{ .Name }}" method="POST">
+						<form action="/api/vm/{{ .Name }}" method="POST">
 							<input type="hidden" name="_method" value="DELETE">
 							<button type="submit" class="delete-btn">Delete</button>
 						</form>

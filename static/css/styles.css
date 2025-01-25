@@ -132,8 +132,17 @@ body {
 	cursor: pointer;
 }
 
-.console-btn {
-	background-color: #28a745;
+.console-btn a {
+	display: inline-block;
+	padding: 10px 20px;
+	background-color: #000000;
+	color: white;
+	text-align: center;
+	text-decoration: none;
+	border-radius: 5px;
+	font-size: 16px;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
 }
 
 .console-btn:hover {

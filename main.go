@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -190,7 +191,6 @@ func getVMs(client *libvirt.Libvirt) []VM {
 		if err != nil {
 			log.Printf("Error running remote command: %v\nOutput: %s", err, output)
 		}
-		println(output)
 		var response GuestNetworkResponse
 		err = json.Unmarshal([]byte(output), &response)
 		if err != nil {
@@ -207,7 +207,17 @@ func getVMs(client *libvirt.Libvirt) []VM {
 				continue
 			}
 		}
-		vm := VM{domain.Name, four, three / 1048576, mystatus, "", ip}
+		command = fmt.Sprintf("virsh --connect qemu:///system domdisplay %s", domain.Name)
+
+		output, err = sshCommand(SSH_USER, SSH_HOST, KEYPATH, command)
+		if err != nil {
+			log.Printf("Error running remote command: %v\nOutput: %s", err, output)
+		}
+		// Split the string by "localhost:"
+		output2 := strings.Split(output, "localhost:")
+		port := strings.TrimSpace(output2[1])
+		fmt.Println(port)
+		vm := VM{domain.Name, four, three / 1048576, mystatus, port, ip}
 		VMs = append(VMs, vm)
 	}
 	return VMs
@@ -255,6 +265,14 @@ func createVM(client *libvirt.Libvirt, name string) {
     <vmport state='off'/>
   </features>
   <devices>
+    <video>
+        <model type='vga'/>
+    </video>
+     <graphics type='spice' port='-1' autoport='yes' listen='0.0.0.0' keymap='de' defaultMode='insecure'>
+      <listen type='address' address='0.0.0.0'/>
+      <image compression='off'/>
+      <gl enable='no'/>
+    </graphics>
     <!-- Cloud-Init ISO attachment -->
     <disk type='file' device='disk'>
       <source file='/var/lib/libvirt/images/cloud-init-iso/cloud-init-%s.iso'/>

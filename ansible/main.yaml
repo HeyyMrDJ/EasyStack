@@ -20,11 +20,14 @@
       - dnsmasq-base
       - bridge-utils
       - firewalld
+      - xorriso
+      - spice-html5
+      - websockify
     services:
       - firewalld
 
   roles:
-    #- depends
-    # - network
-    - kvm_config
+    - depends
+    #- network
+    #- kvm_config
   tasks:
